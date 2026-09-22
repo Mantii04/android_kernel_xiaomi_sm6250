@@ -24,30 +24,33 @@ jobs:
           set -e
           mkdir -p ${{ github.workspace }}/toolchain/clang
           cd ${{ github.workspace }}/toolchain/clang
-          # Use a commit-specific archive URL for reliability
           COMMIT="663361308e09e4dc3c3b9c5f97c19f9c61e8a0ac"
           URL="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/${COMMIT}/clang-r596125.tar.gz"
-          echo "Downloading clang from: $URL"
           curl -L -A "Mozilla/5.0" -o clang.tar.gz "$URL"
-          # Check the download size (should be > 100 MB)
-          SIZE=$(stat -c%s clang.tar.gz)
-          echo "Downloaded size: $SIZE bytes"
-          if [ "$SIZE" -lt 100000000 ]; then
-            echo "ERROR: Download too small. The archive is likely an error page."
-            exit 1
-          fi
           tar -xzf clang.tar.gz
           echo "=== Clang version ==="
           ./bin/clang --version
 
       - name: Download AOSP GCC 4.9
         run: |
+          set -e
           cd ${{ github.workspace }}/toolchain
+          echo "=== Cloning aarch64 GCC 4.9 ==="
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 gcc-aarch64
+          echo "=== Cloning arm GCC 4.9 ==="
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 gcc-arm
+          
+          echo "=== Verifying aarch64 GCC ==="
+          ls -la ${{ github.workspace }}/toolchain/gcc-aarch64/bin/ | head -20
+          ${{ github.workspace }}/toolchain/gcc-aarch64/bin/aarch64-linux-android-gcc --version
+          
+          echo "=== Verifying arm GCC ==="
+          ls -la ${{ github.workspace }}/toolchain/gcc-arm/bin/ | head -20
+          ${{ github.workspace }}/toolchain/gcc-arm/bin/arm-linux-androideabi-gcc --version
 
       - name: Build Kernel
         run: |
+          set -e
           cd ${{ github.workspace }}/kernel
           export ARCH=arm64
           export SUBARCH=arm64
@@ -63,6 +66,11 @@ jobs:
           export OBJDUMP=llvm-objdump
           export READELF=llvm-readelf
           export STRIP=llvm-strip
+          
+          echo "=== Verifying gcc-version.sh can find compiler ==="
+          which aarch64-linux-android-gcc
+          which clang
+          
           make O=out ARCH=arm64 vendor/xiaomi/miatoll-perf_defconfig
           make O=out ARCH=arm64 -j$(nproc)
 
