@@ -25,9 +25,10 @@ jobs:
           config: vendor/xiaomi/miatoll-perf_defconfig
           arch: arm64
           android-version: '16'
-          aosp-clang: true
-          aosp-clang-version: r596125
-          aosp-gcc: true
+          aosp-clang: false
+          aosp-gcc: false
+          other-clang-url: 'https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r596125.tar.gz'
+          other-clang-branch: 'master'
           anykernel3: true
           release: true
           access-token: ${{ secrets.GITHUB_TOKEN }}
