@@ -22,12 +22,8 @@ jobs:
       - name: Patch erofs utils.c
         run: |
           cd ${{ github.workspace }}/kernel
-          echo "=== BEFORE: first 10 lines of utils.c ==="
-          head -10 fs/erofs/utils.c
-          # Prepend the include at line 1 (always works)
           sed -i '1i #include <linux/xarray.h>' fs/erofs/utils.c
-          echo "=== AFTER: first 10 lines of utils.c ==="
-          head -10 fs/erofs/utils.c
+          head -5 fs/erofs/utils.c
 
       - name: Download AOSP Clang r596125
         run: |
@@ -59,7 +55,18 @@ jobs:
           
           MAKE_ARGS="ARCH=arm64 O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf STRIP=llvm-strip"
           
+          # Generate .config from defconfig
           make $MAKE_ARGS vendor/xiaomi/miatoll-perf_defconfig
+          
+          # Force DWARF4 to avoid assembler errors with Clang 22
+          scripts/config --file out/.config --disable DEBUG_INFO_DWARF5
+          scripts/config --file out/.config --disable DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
+          scripts/config --file out/.config --enable DEBUG_INFO_DWARF4
+          
+          # Resolve any config conflicts
+          make $MAKE_ARGS olddefconfig
+          
+          # Build
           make $MAKE_ARGS -j$(nproc)
 
       - name: Package with AnyKernel3
