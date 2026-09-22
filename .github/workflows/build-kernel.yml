@@ -55,27 +55,27 @@ jobs:
           
           MAKE_ARGS="ARCH=arm64 O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf STRIP=llvm-strip"
           
-          # Generate .config from defconfig
           make $MAKE_ARGS vendor/xiaomi/miatoll-perf_defconfig
           
-          # Force DWARF4 to avoid assembler errors with Clang 22
           scripts/config --file out/.config --disable DEBUG_INFO_DWARF5
           scripts/config --file out/.config --disable DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
           scripts/config --file out/.config --enable DEBUG_INFO_DWARF4
           
-          # Resolve any config conflicts
           make $MAKE_ARGS olddefconfig
           
-          # Build
-          make $MAKE_ARGS -j$(nproc)
+          # Build ONLY the kernel Image (skip DTBs and DTBOs which have dtsi syntax errors)
+          make $MAKE_ARGS -j$(nproc) Image.gz-dtb
 
       - name: Package with AnyKernel3
         run: |
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3
-          ls ${{ github.workspace }}/kernel/out/arch/arm64/boot/
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || \
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null || \
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image AnyKernel3/
+          echo "=== Kernel artifacts available ==="
+          ls -la ${{ github.workspace }}/kernel/out/arch/arm64/boot/
+          echo "=== Copying kernel image ==="
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null && echo "Copied Image.gz-dtb" || \
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null && echo "Copied Image.gz" || \
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image AnyKernel3/ && echo "Copied Image"
+          ls -la AnyKernel3/
           cd AnyKernel3
           zip -r9 ../AnyKernel3.zip *
 
