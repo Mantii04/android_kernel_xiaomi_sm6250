@@ -3,30 +3,38 @@ name: Build Kernel
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-    name: Build Boot Image
-    runs-on: ubuntu-latest
+  build-kernel:
+    name: Build Kernel
+    runs-on: ubuntu-22.04
     steps:
+      # 1. Checkout your kernel source
       - name: Checkout Kernel Source
         uses: actions/checkout@v4
         with:
+          repository: Mantii04/android_kernel_xiaomi_sm6250
           ref: lineage-23.2
+          path: kernel-source
 
-      - name: Build Kernel with AnyKernel3
-        uses: migit439/android-kernel-builder@main
+      # 2. Build using the working action with AOSP Clang r596125
+      - name: Build Kernel with AOSP Clang
+        uses: dabao1955/kernel_build_action@main
         with:
-          # Your GitHub username and repo name
-          kernel-repo: 'Mantii04/android_kernel_xiaomi_sm6250'
-          
-          # The exact path to the defconfig you just moved
-          kernel-defconfig: 'vendor/xiaomi/miatoll-perf_defconfig'
-          
-          # This disables the security feature causing your error
-          kernel-config-fragment: |
-            # CONFIG_MODULE_SIG_FORCE is not set
-            CONFIG_MODULE_SIG_ALL=n
-            CONFIG_MODULE_SIG=n
-
-          use-anykernel3: true
+          kernel-url: ./kernel-source/
+          config: vendor/xiaomi/miatoll-perf_defconfig
+          arch: arm64
           android-version: '16'
+          
+          # Use the exact AOSP Clang version from the ImperialX kernel
+          aosp-clang: true
+          aosp-clang-version: 'r596125'
+          aosp-gcc: true
+          
+          # Disable module signature verification
+          # (This will be applied via a patch or config fragment)
+          
+          anykernel3: true
+          disable-lto: true
