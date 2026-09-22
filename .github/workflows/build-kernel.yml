@@ -63,18 +63,15 @@ jobs:
           
           make $MAKE_ARGS olddefconfig
           
-          # Build ONLY the kernel Image (skip DTBs and DTBOs which have dtsi syntax errors)
-          make $MAKE_ARGS -j$(nproc) Image.gz-dtb
+          # Build ONLY Image.gz - no DTB dependency
+          make $MAKE_ARGS -j$(nproc) Image.gz
 
       - name: Package with AnyKernel3
         run: |
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3
           echo "=== Kernel artifacts available ==="
           ls -la ${{ github.workspace }}/kernel/out/arch/arm64/boot/
-          echo "=== Copying kernel image ==="
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null && echo "Copied Image.gz-dtb" || \
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null && echo "Copied Image.gz" || \
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image AnyKernel3/ && echo "Copied Image"
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/ && echo "Copied Image.gz"
           ls -la AnyKernel3/
           cd AnyKernel3
           zip -r9 ../AnyKernel3.zip *
