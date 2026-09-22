@@ -17,23 +17,48 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex git libelf-dev libssl-dev python3 zip
+          sudo apt-get install -y bc bison build-essential ccache curl flex git libelf-dev libssl-dev python3 zip jq
 
       - name: Download AOSP Clang r596125
         run: |
           mkdir -p ${{ github.workspace }}/toolchain/clang
           cd ${{ github.workspace }}/toolchain/clang
-          # Use curl with a browser user-agent to bypass Google's 400 error
-          curl -L -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-            -o clang.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r596125.tar.gz"
-          # Check if the download was successful (file size > 100MB)
-          if [ ! -s clang.tar.gz ] || [ $(stat -c%s clang.tar.gz) -lt 100000000 ]; then
-            echo "Google download failed, trying fallback from GitHub release..."
-            curl -L -o clang.tar.gz \
-              "https://github.com/FlopKernel-Series/flop_s5e8825_kernel/releases/download/v6.3.3/clang-r596125.tar.gz"
+          
+          # Find the download URL via GitHub API
+          echo "Searching for clang-r596125 in Zycromerz/Clang releases..."
+          CLANG_URL=$(curl -s "https://api.github.com/repos/Zycromerz/Clang/releases?per_page=100" | \
+            jq -r '.[] | .assets[]? | select(.name | test("r596125")) | .browser_download_url' | head -1)
+          
+          if [ -z "$CLANG_URL" ]; then
+            echo "Searching in DevMhrn/Clang..."
+            CLANG_URL=$(curl -s "https://api.github.com/repos/DevMhrn/Clang/releases?per_page=100" | \
+              jq -r '.[] | .assets[]? | select(.name | test("r596125")) | .browser_download_url' | head -1)
           fi
-          tar -xzf clang.tar.gz
+          
+          if [ -z "$CLANG_URL" ]; then
+            echo "ERROR: Could not find r596125 asset"
+            exit 1
+          fi
+          
+          echo "Downloading from: $CLANG_URL"
+          curl -L -o clang-archive "$CLANG_URL"
+          
+          # Extract based on file type
+          if [[ "$CLANG_URL" == *.xz ]]; then
+            tar -xJf clang-archive
+          else
+            tar -xzf clang-archive
+          fi
+          
+          # Handle case where files extract into a subdirectory
+          if [ ! -f "bin/clang" ]; then
+            SUBDIR=$(ls -d */ 2>/dev/null | head -1)
+            if [ -n "$SUBDIR" ] && [ -f "${SUBDIR}bin/clang" ]; then
+              mv ${SUBDIR}* .
+              rmdir "$SUBDIR"
+            fi
+          fi
+          
           echo "=== Clang version ==="
           ./bin/clang --version
 
@@ -66,7 +91,8 @@ jobs:
       - name: Package with AnyKernel3
         run: |
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/
+          ls ${{ github.workspace }}/kernel/out/arch/arm64/boot/
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null || cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image AnyKernel3/
           cd AnyKernel3
           zip -r9 ../AnyKernel3.zip *
 
