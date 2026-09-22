@@ -1,0 +1,32 @@
+name: Build Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Boot Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Kernel Source
+        uses: actions/checkout@v4
+        with:
+          ref: lineage-23.2
+
+      - name: Build Kernel with AnyKernel3
+        uses: migit439/android-kernel-builder@main
+        with:
+          # Your GitHub username and repo name
+          kernel-repo: 'Mantii04/android_kernel_xiaomi_sm6250'
+          
+          # The exact path to the defconfig you just moved
+          kernel-defconfig: 'vendor/xiaomi/miatoll-perf_defconfig'
+          
+          # This disables the security feature causing your error
+          kernel-config-fragment: |
+            # CONFIG_MODULE_SIG_FORCE is not set
+            CONFIG_MODULE_SIG_ALL=n
+            CONFIG_MODULE_SIG=n
+
+          use-anykernel3: true
+          android-version: '16'
