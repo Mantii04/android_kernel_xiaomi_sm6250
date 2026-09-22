@@ -28,24 +28,15 @@ jobs:
           URL="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/${COMMIT}/clang-r596125.tar.gz"
           curl -L -A "Mozilla/5.0" -o clang.tar.gz "$URL"
           tar -xzf clang.tar.gz
-          echo "=== Clang version ==="
           ./bin/clang --version
 
       - name: Download AOSP GCC 4.9 from LineageOS Mirror
         run: |
           set -e
           cd ${{ github.workspace }}/toolchain
-          
-          echo "=== Cloning aarch64 GCC 4.9 ==="
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc-aarch64
-          echo "=== Verifying aarch64 GCC ==="
-          ls ${{ github.workspace }}/toolchain/gcc-aarch64/bin/ | head
-          ${{ github.workspace }}/toolchain/gcc-aarch64/bin/aarch64-linux-android-gcc --version
-          
-          echo "=== Cloning arm GCC 4.9 ==="
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc-arm
-          echo "=== Verifying arm GCC ==="
-          ls ${{ github.workspace }}/toolchain/gcc-arm/bin/ | head
+          ${{ github.workspace }}/toolchain/gcc-aarch64/bin/aarch64-linux-android-gcc --version
           ${{ github.workspace }}/toolchain/gcc-arm/bin/arm-linux-androideabi-gcc --version
 
       - name: Build Kernel
@@ -55,24 +46,16 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           export PATH=${{ github.workspace }}/toolchain/clang/bin:${{ github.workspace }}/toolchain/gcc-aarch64/bin:${{ github.workspace }}/toolchain/gcc-arm/bin:$PATH
-          export CC=clang
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-          export CROSS_COMPILE=aarch64-linux-android-
-          export CROSS_COMPILE_ARM32=arm-linux-androideabi-
-          export LD=ld.lld
-          export AR=llvm-ar
-          export NM=llvm-nm
-          export OBJCOPY=llvm-objcopy
-          export OBJDUMP=llvm-objdump
-          export READELF=llvm-readelf
-          export STRIP=llvm-strip
           
-          echo "=== Verifying compilers are in PATH ==="
-          which aarch64-linux-android-gcc
+          # All toolchain variables on the make command line to override the kernel's defaults
+          MAKE_ARGS="ARCH=arm64 O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf STRIP=llvm-strip"
+          
+          echo "=== Verifying compilers ==="
           which clang
+          which aarch64-linux-android-gcc
           
-          make O=out ARCH=arm64 vendor/xiaomi/miatoll-perf_defconfig
-          make O=out ARCH=arm64 -j$(nproc)
+          make $MAKE_ARGS vendor/xiaomi/miatoll-perf_defconfig
+          make $MAKE_ARGS -j$(nproc)
 
       - name: Package with AnyKernel3
         run: |
