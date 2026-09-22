@@ -19,6 +19,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y bc bison build-essential ccache curl flex git libelf-dev libssl-dev python3 zip
 
+      - name: Patch erofs utils.c
+        run: |
+          cd ${{ github.workspace }}/kernel
+          # Add missing xarray.h include to fix xa_lock/xa_unlock errors
+          sed -i 's|#include <linux/prefetch.h>|#include <linux/prefetch.h>\n#include <linux/xarray.h>|' fs/erofs/utils.c
+          echo "=== Checking patch applied ==="
+          head -20 fs/erofs/utils.c
+
       - name: Download AOSP Clang r596125
         run: |
           set -e
@@ -47,12 +55,7 @@ jobs:
           export SUBARCH=arm64
           export PATH=${{ github.workspace }}/toolchain/clang/bin:${{ github.workspace }}/toolchain/gcc-aarch64/bin:${{ github.workspace }}/toolchain/gcc-arm/bin:$PATH
           
-          # All toolchain variables on the make command line to override the kernel's defaults
           MAKE_ARGS="ARCH=arm64 O=out CC=clang CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE=aarch64-linux-android- CROSS_COMPILE_ARM32=arm-linux-androideabi- LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump READELF=llvm-readelf STRIP=llvm-strip"
-          
-          echo "=== Verifying compilers ==="
-          which clang
-          which aarch64-linux-android-gcc
           
           make $MAKE_ARGS vendor/xiaomi/miatoll-perf_defconfig
           make $MAKE_ARGS -j$(nproc)
