@@ -23,14 +23,7 @@ jobs:
         run: |
           mkdir -p ${{ github.workspace }}/toolchain
           cd ${{ github.workspace }}/toolchain
-          # Use curl with browser user-agent to avoid 400 error
-          curl -L -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-            -o clang.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r596125.tar.gz" \
-            || curl -L -A "Mozilla/5.0" -o clang.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/master/clang-r596125.tar.gz"
-          mkdir -p clang
-          tar -xzf clang.tar.gz -C clang
+          git clone --depth=1 -b clang-r596125 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 clang
           echo "=== Clang version ==="
           ${{ github.workspace }}/toolchain/clang/bin/clang --version
 
@@ -63,7 +56,8 @@ jobs:
       - name: Package with AnyKernel3
         run: |
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/
+          ls ${{ github.workspace }}/kernel/out/arch/arm64/boot/
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null || cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image AnyKernel3/
           cd AnyKernel3
           zip -r9 ../AnyKernel3.zip *
 
