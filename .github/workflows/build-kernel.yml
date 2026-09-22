@@ -17,48 +17,26 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential ccache curl flex git libelf-dev libssl-dev python3 zip jq
+          sudo apt-get install -y bc bison build-essential ccache curl flex git libelf-dev libssl-dev python3 zip
 
       - name: Download AOSP Clang r596125
         run: |
+          set -e
           mkdir -p ${{ github.workspace }}/toolchain/clang
           cd ${{ github.workspace }}/toolchain/clang
-          
-          # Find the download URL via GitHub API
-          echo "Searching for clang-r596125 in Zycromerz/Clang releases..."
-          CLANG_URL=$(curl -s "https://api.github.com/repos/Zycromerz/Clang/releases?per_page=100" | \
-            jq -r '.[] | .assets[]? | select(.name | test("r596125")) | .browser_download_url' | head -1)
-          
-          if [ -z "$CLANG_URL" ]; then
-            echo "Searching in DevMhrn/Clang..."
-            CLANG_URL=$(curl -s "https://api.github.com/repos/DevMhrn/Clang/releases?per_page=100" | \
-              jq -r '.[] | .assets[]? | select(.name | test("r596125")) | .browser_download_url' | head -1)
-          fi
-          
-          if [ -z "$CLANG_URL" ]; then
-            echo "ERROR: Could not find r596125 asset"
+          # Use a commit-specific archive URL for reliability
+          COMMIT="663361308e09e4dc3c3b9c5f97c19f9c61e8a0ac"
+          URL="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/${COMMIT}/clang-r596125.tar.gz"
+          echo "Downloading clang from: $URL"
+          curl -L -A "Mozilla/5.0" -o clang.tar.gz "$URL"
+          # Check the download size (should be > 100 MB)
+          SIZE=$(stat -c%s clang.tar.gz)
+          echo "Downloaded size: $SIZE bytes"
+          if [ "$SIZE" -lt 100000000 ]; then
+            echo "ERROR: Download too small. The archive is likely an error page."
             exit 1
           fi
-          
-          echo "Downloading from: $CLANG_URL"
-          curl -L -o clang-archive "$CLANG_URL"
-          
-          # Extract based on file type
-          if [[ "$CLANG_URL" == *.xz ]]; then
-            tar -xJf clang-archive
-          else
-            tar -xzf clang-archive
-          fi
-          
-          # Handle case where files extract into a subdirectory
-          if [ ! -f "bin/clang" ]; then
-            SUBDIR=$(ls -d */ 2>/dev/null | head -1)
-            if [ -n "$SUBDIR" ] && [ -f "${SUBDIR}bin/clang" ]; then
-              mv ${SUBDIR}* .
-              rmdir "$SUBDIR"
-            fi
-          fi
-          
+          tar -xzf clang.tar.gz
           echo "=== Clang version ==="
           ./bin/clang --version
 
@@ -92,7 +70,9 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/osm0sis/AnyKernel3
           ls ${{ github.workspace }}/kernel/out/arch/arm64/boot/
-          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null || cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image AnyKernel3/
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz-dtb AnyKernel3/ 2>/dev/null || \
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image.gz AnyKernel3/ 2>/dev/null || \
+          cp ${{ github.workspace }}/kernel/out/arch/arm64/boot/Image AnyKernel3/
           cd AnyKernel3
           zip -r9 ../AnyKernel3.zip *
 
