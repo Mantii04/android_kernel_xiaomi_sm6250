@@ -31,28 +31,22 @@ jobs:
           echo "=== Clang version ==="
           ./bin/clang --version
 
-      - name: Download AOSP GCC 4.9
+      - name: Download AOSP GCC 4.9 from LineageOS Mirror
         run: |
           set -e
-          mkdir -p ${{ github.workspace }}/toolchain/gcc-aarch64
-          cd ${{ github.workspace }}/toolchain/gcc-aarch64
-          echo "=== Downloading aarch64 GCC 4.9 ==="
-          curl -L -A "Mozilla/5.0" -o gcc.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/refs/heads/master.tar.gz"
-          tar -xzf gcc.tar.gz
-          echo "=== Verifying aarch64 GCC ==="
-          ls bin/ | head -20
-          ./bin/aarch64-linux-android-gcc --version
+          cd ${{ github.workspace }}/toolchain
           
-          mkdir -p ${{ github.workspace }}/toolchain/gcc-arm
-          cd ${{ github.workspace }}/toolchain/gcc-arm
-          echo "=== Downloading arm GCC 4.9 ==="
-          curl -L -A "Mozilla/5.0" -o gcc.tar.gz \
-            "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/+archive/refs/heads/master.tar.gz"
-          tar -xzf gcc.tar.gz
+          echo "=== Cloning aarch64 GCC 4.9 ==="
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 gcc-aarch64
+          echo "=== Verifying aarch64 GCC ==="
+          ls ${{ github.workspace }}/toolchain/gcc-aarch64/bin/ | head
+          ${{ github.workspace }}/toolchain/gcc-aarch64/bin/aarch64-linux-android-gcc --version
+          
+          echo "=== Cloning arm GCC 4.9 ==="
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 gcc-arm
           echo "=== Verifying arm GCC ==="
-          ls bin/ | head -20
-          ./bin/arm-linux-androideabi-gcc --version
+          ls ${{ github.workspace }}/toolchain/gcc-arm/bin/ | head
+          ${{ github.workspace }}/toolchain/gcc-arm/bin/arm-linux-androideabi-gcc --version
 
       - name: Build Kernel
         run: |
