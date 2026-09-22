@@ -18,13 +18,6 @@ jobs:
           ref: lineage-23.2
           path: kernel-source
 
-      - name: Download AOSP Clang r596125
-        run: |
-          mkdir -p ${{ github.workspace }}/clang-r596125
-          cd ${{ github.workspace }}/clang-r596125
-          wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r596125.tar.gz -O clang.tar.gz
-          tar -xzf clang.tar.gz
-
       - name: Build Kernel with Exact AOSP Clang
         uses: dabao1955/kernel_build_action@v1.10.2
         with:
@@ -32,10 +25,8 @@ jobs:
           config: vendor/xiaomi/miatoll-perf_defconfig
           arch: arm64
           android-version: '16'
-          aosp-clang: false
-          aosp-gcc: false
-          other-clang-url: 'file://${{ github.workspace }}/clang-r596125'
-          other-clang-branch: 'master'
+          aosp-clang: true
+          aosp-clang-version: r596125
           anykernel3: true
           release: true
           access-token: ${{ secrets.GITHUB_TOKEN }}
