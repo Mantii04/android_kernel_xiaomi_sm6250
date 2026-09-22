@@ -19,8 +19,8 @@ jobs:
           ref: lineage-23.2
           path: kernel-source
 
-      # 2. Build using the working action with AOSP Clang r596125
-      - name: Build Kernel with AOSP Clang
+      # 2. Build using the EXACT AOSP Clang r596125
+      - name: Build Kernel with AOSP Clang r596125
         uses: dabao1955/kernel_build_action@main
         with:
           kernel-url: ./kernel-source/
@@ -28,13 +28,11 @@ jobs:
           arch: arm64
           android-version: '16'
           
-          # Use the exact AOSP Clang version from the ImperialX kernel
-          aosp-clang: true
-          aosp-clang-version: 'r596125'
-          aosp-gcc: true
+          # Use the exact toolchain via direct download URL
+          other-clang-url: 'https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r596125.tar.gz'
           
-          # Disable module signature verification
-          # (This will be applied via a patch or config fragment)
+          # Or use the AOSP option directly (try this first)
+          # aosp-clang: true
+          # aosp-clang-version: r596125
           
           anykernel3: true
-          disable-lto: true
