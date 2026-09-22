@@ -34,19 +34,25 @@ jobs:
       - name: Download AOSP GCC 4.9
         run: |
           set -e
-          cd ${{ github.workspace }}/toolchain
-          echo "=== Cloning aarch64 GCC 4.9 ==="
-          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 gcc-aarch64
-          echo "=== Cloning arm GCC 4.9 ==="
-          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 gcc-arm
-          
+          mkdir -p ${{ github.workspace }}/toolchain/gcc-aarch64
+          cd ${{ github.workspace }}/toolchain/gcc-aarch64
+          echo "=== Downloading aarch64 GCC 4.9 ==="
+          curl -L -A "Mozilla/5.0" -o gcc.tar.gz \
+            "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/+archive/refs/heads/master.tar.gz"
+          tar -xzf gcc.tar.gz
           echo "=== Verifying aarch64 GCC ==="
-          ls -la ${{ github.workspace }}/toolchain/gcc-aarch64/bin/ | head -20
-          ${{ github.workspace }}/toolchain/gcc-aarch64/bin/aarch64-linux-android-gcc --version
+          ls bin/ | head -20
+          ./bin/aarch64-linux-android-gcc --version
           
+          mkdir -p ${{ github.workspace }}/toolchain/gcc-arm
+          cd ${{ github.workspace }}/toolchain/gcc-arm
+          echo "=== Downloading arm GCC 4.9 ==="
+          curl -L -A "Mozilla/5.0" -o gcc.tar.gz \
+            "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/+archive/refs/heads/master.tar.gz"
+          tar -xzf gcc.tar.gz
           echo "=== Verifying arm GCC ==="
-          ls -la ${{ github.workspace }}/toolchain/gcc-arm/bin/ | head -20
-          ${{ github.workspace }}/toolchain/gcc-arm/bin/arm-linux-androideabi-gcc --version
+          ls bin/ | head -20
+          ./bin/arm-linux-androideabi-gcc --version
 
       - name: Build Kernel
         run: |
@@ -67,7 +73,7 @@ jobs:
           export READELF=llvm-readelf
           export STRIP=llvm-strip
           
-          echo "=== Verifying gcc-version.sh can find compiler ==="
+          echo "=== Verifying compilers are in PATH ==="
           which aarch64-linux-android-gcc
           which clang
           
